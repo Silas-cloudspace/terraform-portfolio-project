@@ -4,14 +4,14 @@ provider "aws" {
 
 # S3 Bucket
 resource "aws_s3_bucket" "nextjs_bucket" {
-  bucket = "nextjs-portfolio-bucket-st"
+  bucket = "s3-nextjs-portfolio-bucket-st"
 }
 
 # Ownership Control
 resource "aws_s3_bucket_ownership_controls" "nextjs_bucket_ownership_controls" {
   bucket = aws_s3_bucket.nextjs_bucket.id
   rule {
-    object_ownership = "BucketOwnerPrefferred"
+    object_ownership = "BucketOwnerPreferred"
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_s3_bucket_public_access_block" "nextjs_bucket_public_access_block"
 resource "aws_s3_bucket_acl" "nextjs_bucket_acl" {
 
     depends_on = [
-        aws_s3_bucket_ownership_controls.nextjs,
+        aws_s3_bucket_ownership_controls.nextjs_bucket_ownership_controls,
         aws_s3_bucket_public_access_block.nextjs_bucket_public_access_block
        ]
        
@@ -43,9 +43,9 @@ resource "aws_s3_bucket_acl" "nextjs_bucket_acl" {
 resource "aws_s3_bucket_policy" "nextjs_bucket_policy" {
   bucket = aws_s3_bucket.nextjs_bucket.id
 
-  policy = jsonencode(({
-    version = "2012-10-17"
-    statement = [
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
         Sid = "PublicReadGetObject"
         Effect = "Allow"
@@ -54,7 +54,7 @@ resource "aws_s3_bucket_policy" "nextjs_bucket_policy" {
         Resource = "${aws_s3_bucket.nextjs_bucket.arn}/*"
       }
     ]
-  }))
+  })
 }
 # Origin Access Identity (OAI)
 resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
@@ -65,8 +65,8 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 resource "aws_cloudfront_distribution" "nextjs_distribution" {
 
   origin {
-    domain_name = aws_s3_bucket.nextjs_bucket.bucket_regional_domain_name,
-    origin_id = "s3-nextjs-portfolio_bucket"
+    domain_name = aws_s3_bucket.nextjs_bucket.bucket_regional_domain_name
+    origin_id = "s3-nextjs-portfolio-bucket-st"
 
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
@@ -82,7 +82,7 @@ resource "aws_cloudfront_distribution" "nextjs_distribution" {
   default_cache_behavior {
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods = ["GET", "HEAD"]
-    target_origin_id = "s3-nextjs-portfolio-bucket"
+    target_origin_id = "s3-nextjs-portfolio-bucket-st"
 
     forwarded_values {
       query_string = false
@@ -98,8 +98,8 @@ resource "aws_cloudfront_distribution" "nextjs_distribution" {
   }
 
   restrictions {
-    geo_restrictions {
-      restriction_type = none
+    geo_restriction {
+      restriction_type = "none"
     }
   }
 
